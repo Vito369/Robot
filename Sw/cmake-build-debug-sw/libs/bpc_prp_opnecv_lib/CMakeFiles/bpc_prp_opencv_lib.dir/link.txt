@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbpc_prp_opencv_lib.a  CMakeFiles/bpc_prp_opencv_lib.dir/src/ImageProcessor.cpp.o
+/usr/bin/ranlib libbpc_prp_opencv_lib.a
