@@ -1,1 +1,4 @@
 # Robot
+
+##Authors
+Ondřej Vitoslavský
