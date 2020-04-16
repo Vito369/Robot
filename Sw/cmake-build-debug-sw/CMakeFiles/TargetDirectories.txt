@@ -1,6 +1,0 @@
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/CMakeFiles/rebuild_cache.dir
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/CMakeFiles/Sw.dir
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/CMakeFiles/edit_cache.dir
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/libs/bpc_prp_opnecv_lib/CMakeFiles/rebuild_cache.dir
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/libs/bpc_prp_opnecv_lib/CMakeFiles/bpc_prp_opencv_lib.dir
-/tmp/tmp.2l8OOBF7z1/cmake-build-debug-sw/libs/bpc_prp_opnecv_lib/CMakeFiles/edit_cache.dir
