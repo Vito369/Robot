@@ -66,7 +66,7 @@ namespace bpc_prp_opencv_lib {
         saveImage("gray", gray);
 
         cv::Mat rt,gt,bt, grayt, pom;
-        cv::threshold(r, rt, 150, 255, CV_8U);
+        cv::threshold(r, rt, 140, 255, CV_8U);
         //cv::threshold(g, gt, 95, 255, CV_8U);//100
         //cv::threshold(b, bt, 100, 255, CV_8U);
         cv::threshold(gray, grayt, 100, 255, CV_8U);
@@ -78,7 +78,7 @@ namespace bpc_prp_opencv_lib {
         saveImage("grayt", grayt);
 
 
-        detectCrossing(255-grayt);
+        //detectCrossing(255-grayt);
 
         cv::Mat workerMask = rt & ( (255-grayt));
         //cv::Mat zombieMask = gt & ( (255-grayt));

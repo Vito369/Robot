@@ -11,7 +11,7 @@
 
 
 //
-#define C_TW    0.129 //width of car in m
+#define C_TW    0.135 //width of car in m
 #define D_WHEEL 0.0660 //diameter of wheel in m
 
 #define C_WHEEL (D_WHEEL*M_PI) //circumference of wheel in m
@@ -26,6 +26,7 @@ class C_MOTORS : public C_I2C {
     float linear_speed, angular_speed;
     int16_t right_wheel_speed, left_wheel_speed;
     float x_position, y_position, distance_traveled,distance_from_start;
+    float angle;
 
 public:
 
@@ -33,6 +34,7 @@ public:
     {
       linear_speed=0; angular_speed=0; right_wheel_speed=0; left_wheel_speed=0;
       x_position=0; y_position=0; distance_traveled=0, distance_from_start=0;
+      angle=0;
     }
 
 /**
@@ -56,8 +58,8 @@ public:
         //left_wheel_speed=(int16_t)(linear_speed+0.5*C_TW*angular_speed)*C_LR;
         //right_wheel_speed=-(int16_t)(linear_speed-0.5*C_TW*angular_speed)*C_LR;
 
-        left_wheel_speed=(linear_speed+0.5*0.129*angular_speed)*(262./(0.066*3.14));
-        right_wheel_speed=-(linear_speed-0.5*0.129*angular_speed)*(262./(0.066*3.14));
+        left_wheel_speed=(linear_speed+0.5*0.135*angular_speed)*(262./(0.066*M_PI));
+        right_wheel_speed=-(linear_speed-0.5*0.135*angular_speed)*(262./(0.066*M_PI));
 
         pole[0]=left_wheel_speed;
         pole[1]=right_wheel_speed;
@@ -66,8 +68,8 @@ public:
         if(left_wheel_speed<-700) pole[0]=-700;
         if(right_wheel_speed<-700) pole[1]=-700;
 
-        std::cerr << "left: " << left_wheel_speed  << "\tright: " << right_wheel_speed << std::endl;
-        std::cerr << "linear: " << linear_speed  << "\tangular: " << angular_speed << std::endl;
+        std::cout << "left: " << left_wheel_speed  << "\tright: " << right_wheel_speed << std::endl;
+        std::cout << "linear: " << linear_speed  << "\tangular: " << angular_speed << std::endl;
         i2c_write_leint16_array(get_fd(), get_i2c_address(), KM2_SPEED, &pole[0], 2);
 
 
@@ -80,20 +82,13 @@ public:
  * @param angular angular speed of robot in rad/s
  */
     void Position_Calculate(float linear, float angular){
-        distance_traveled=distance_traveled+linear*SAMPLE_TIME/1000.;
-        x_position=x_position+linear*SAMPLE_TIME/1000.;
-        //y_position=y_position+linear*SAMPLE_TIME;
-
+        distance_traveled=distance_traveled+abs(linear*SAMPLE_TIME/1000.);
+        angle=angle+angular*SAMPLE_TIME/1000.;
+        x_position=x_position+sin(angle)*linear*SAMPLE_TIME/1000.;
+        y_position=y_position+cos(angle)*linear*SAMPLE_TIME/1000.;
         distance_from_start=hypotf(x_position,y_position);
     }
 
-    float get_speed_left(void){
-        return left_wheel_speed;
-    }
-
-    float get_speed_right(void){
-        return right_wheel_speed;
-    }
 
     float get_speed_linear(void){
         return linear_speed;
@@ -107,6 +102,17 @@ public:
         return distance_traveled;
     }
 
+    float get_distance_from_start(void){
+        return distance_from_start;
+    }
+
+    float get_angle(void){
+        return angle;
+    }
+
+    void Position_Info(void){
+        printf("x [cm] = %.2f \ty [cm] = %.2f \tangle [°] = %.2f\n",x_position*100,y_position*100,angle*180/M_PI);
+    }
 };
 
 

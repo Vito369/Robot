@@ -15,23 +15,20 @@
 #include <cmath>
 
 #define I2C_BUS_NUMBER  1
-#define CAMERA 0
+#define CAMERA 1
 #define STARTUP_SETTING 0
 
 uint16_t SAMPLE_TIME=50; //time in ms
 
-#if CAMERA
-#define SAMPLE_TIME_ERR 30
-#else
-#define SAMPLE_TIME_ERR 0
-#endif
 
 
 enum _State{
     NORMAL,
     CROSSING,
-    OUT_OF_TAPE
-}State=NORMAL;
+    OUT_OF_TAPE,
+    WORKER,
+    TESTING
+}State=TESTING;
 
 
 const char *graf(char* buffer, int nchars, float value);
@@ -41,7 +38,6 @@ float PSDController2 (float desiredValue, float measuredValue);
 
 int main(int argc, char* argv[])
 {
-    char buffer[100];
     uint32_t millis=0;
     float ang=0, spd=0;
     float prev_ang[6]={0.};
@@ -60,8 +56,7 @@ int main(int argc, char* argv[])
 #if CAMERA
     //CAMERA
     /// example of bpc_prp_opencv_lib usage ///
-    bpc_prp_opencv_lib::ImageProcessor imgProcessor(false, false, "/home/pi/images/");
-
+    bpc_prp_opencv_lib::ImageProcessor imgProcessor(true, true, "/home/pi/images/");
     cv::VideoCapture cap;
     if(!cap.open(0)) {
         std::cerr << "Error, unable to open camera" << std::endl;
@@ -92,34 +87,33 @@ int main(int argc, char* argv[])
     GPIO.Beep(10,1000);
 #endif
     GPIO.LED_ON(PB6);
-    std::cerr << "Program started!" << std::endl;
     while(1) {
+        //start of clock
+        auto start = std::chrono::high_resolution_clock::now();
+        std::cout << "=======================================" << std::endl;
         switch(State){
             case NORMAL:
             {
                 ADC.Read_Sensors();
                 distance=ADC.Calculate_Distance(0);
+                std::cout << "dis: " << distance << std::endl;
 
-                std::cout << "====================" << std::endl;
-                std::cout << "dist: " <<distance << std::endl;
-                std::cout << "ang: " << ang << std::endl;
                 if(ADC.Is_Crossing()){
-                    std::cerr << "===========================Crossing detected!===========================" << std::endl;
                     State=CROSSING;
                     break;
                 }
 
                 if(ADC.Is_Outside_the_Tape(distance)){
-                    std::cerr << "===========================Out of Tape detected!===========================" << std::endl;
                     State=OUT_OF_TAPE;
                     break;
                 }
+
                 spd=PSDController1(C_WHEEL/1.5,MOTORS.get_speed_linear());
                 ang=-PSDController2(0,distance);
 
 
                 MOTORS.Set_Speed(spd+MOTORS.get_speed_linear(),ang);
-                //MOTORS.Set_Speed(spd+MOTORS.get_speed_linear(),(ang+prev_ang[0])/2.);
+                //MOTORS.Position_Info();
 
                 prev_ang[5]=prev_ang[4];
                 prev_ang[4]=prev_ang[3];
@@ -127,8 +121,7 @@ int main(int argc, char* argv[])
                 prev_ang[2]=prev_ang[1];
                 prev_ang[1]=prev_ang[0];
                 prev_ang[0]=ang;
-
-                /*
+#if CAMERA
                 cap >> frame;
                 auto detections = imgProcessor.analyzeImage(frame);
 
@@ -136,103 +129,54 @@ int main(int argc, char* argv[])
                     std::cerr << "Tape width: " << imgProcessor.GetTapeWidth() << std::endl;
                     State=CROSSING;
                 }
-                */
+
+#endif
                 break;
             }
             case CROSSING:
             {
-                //GPIO.Buzzer_ON();
                 for(uint8_t i=0;i<3;i++){
                     MOTORS.Set_Speed(spd+MOTORS.get_speed_linear(),prev_ang[5]);
                     Delay_ms(SAMPLE_TIME);
                 }
                 State=NORMAL;
-                //GPIO.Buzzer_OFF();
 
                 break;
             }
             case OUT_OF_TAPE:
             {
-                //GPIO.Buzzer_ON();
                 ADC.Read_Sensors();
                 distance=ADC.Calculate_Distance(0);
-                spd=PSDController1(C_WHEEL/1.5,MOTORS.get_speed_linear()); // /1.5
                 MOTORS.Set_Speed(spd+MOTORS.get_speed_linear(),(prev_ang[4]+prev_ang[5])/2.);
+                //MOTORS.Position_Info();
                 if(!ADC.Is_Outside_the_Tape(distance)){
                     State=NORMAL;
-                    //GPIO.Buzzer_OFF();
                 }
+                break;
+            }
+            case WORKER:
+                {
+                break;
+            }
+            case TESTING:
+                {
+
+                cap >> frame;
+                auto detections = imgProcessor.analyzeImage(frame);
+/*
+                if(imgProcessor.GetTapeWidth()>125) {
+                    std::cerr << "Tape width: " << imgProcessor.GetTapeWidth() << std::endl;
+                    State=CROSSING;
+                }
+*/
+                while(1);
                 break;
             }
             default:
                 break;
         }
-#if 0
-        //start of clock
-        auto start = std::chrono::high_resolution_clock::now();
-        ADC.Read_Sensors();
-        distance=ADC.Calculate_Distance(0);
-        spd=PSDController1(C_WHEEL,MOTORS.get_speed_linear());
-        ang=-PSDController2(0,distance);
-        if(ADC.Is_Outside_the_Tape(distance)||ADC.Is_Crossing()) {
-            ang=prev_ang[5];
-            std::cout << "outside or crossing: "<< std::endl;
-            GPIO.LED_ON(PA0);
-            //GPIO.Buzzer_ON();
-        }
-        else{
-            prev_ang[9]=prev_ang[8];
-            prev_ang[8]=prev_ang[7];
-            prev_ang[7]=prev_ang[6];
-            prev_ang[6]=prev_ang[5];
-            prev_ang[5]=prev_ang[4];
-            prev_ang[4]=prev_ang[3];
-            prev_ang[3]=prev_ang[2];
-            prev_ang[2]=prev_ang[1];
-            prev_ang[1]=prev_ang[0];
-            prev_ang[0]=ang;
-            GPIO.LED_OFF(PA0);
-            //GPIO.Buzzer_OFF();
-        }
-        cap >> frame;
-        auto detections = imgProcessor.analyzeImage(frame);
-        std::cerr << "Tape width: " << imgProcessor.GetTapeWidth() << std::endl;
-        if(imgProcessor.GetTapeWidth()>125) {
-            GPIO.Buzzer_ON();
-        }
-        else {
-            GPIO.Buzzer_OFF();
-        }
 
-        //MOTORS.Set_Speed(spd+MOTORS.get_speed_linear(),ang);
-        //MOTORS.Set_Speed(0,ang);
-        //tisk
-        if(millis>=250){
-            /*
-            graf(&buffer[0], 100, ADC.Get_Sensor_Value(1)/0x0FFF);
-            printf("AD1 %.0f   \t:",ADC.Get_Sensor_Value(1));
-            std::cout << buffer << std::endl;
 
-            graf(&buffer[0], 100, ADC.Get_Sensor_Value(2)/0x0FFF);
-            printf("AD2 %.0f   \t:",ADC.Get_Sensor_Value(2));
-            std::cout << buffer << std::endl;
-
-            ADC.Print_Info();
-            //std::cout << "ang:" << ang << std::endl;
-            //std::cout << "left: " << MOTORS.get_speed_left()<<"  \tright: " << MOTORS.get_speed_right()<< std::endl;
-            std::cout << "distance:" << distance << std::endl;
-            */
-            //std::cout << "dist: " <<distance << std::endl;
-            //std::cout << "ang: " << ang << std::endl;
-            millis=0;
-        }
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        std::cout << "Duration [us]: " << duration.count() << std::endl;
-#endif
-
-        millis+=(SAMPLE_TIME-SAMPLE_TIME_ERR);
-        Delay_ms(SAMPLE_TIME-SAMPLE_TIME_ERR);
 
         if((GPIO.Button_Read(PA7)==true)&&(GPIO.Button_Read(PA6)==true)){
             printf("Ended in %.2f seconds.\n",millis/1000.);
@@ -240,9 +184,23 @@ int main(int argc, char* argv[])
             break;
         }
 
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        //std::cout << "Duration [ms]: " << duration.count()/1000 << std::endl;
+        millis+=(SAMPLE_TIME);
+
+        if((duration.count()/1000)>50.) continue;
+        else if((duration.count()/1000)<50.){
+            Delay_ms(SAMPLE_TIME-(duration.count()/1000));
+        }
+
+        auto stop2 = std::chrono::high_resolution_clock::now();
+        auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start);
+        //std::cout << "Duration2 [ms]: " << duration2.count()/1000 << std::endl;
+        std::cout << "==================================" << std::endl;
     }
     GPIO.Buzzer_OFF();
-    MOTORS.Set_Speed(0,ang);
+    MOTORS.Set_Speed(0,0);
     return 0;
 }
 
@@ -268,7 +226,8 @@ float PSDController2 (float desiredValue, float measuredValue) {
     error = desiredValue - measuredValue;
     integral = integral + error*(SAMPLE_TIME/1000.);
     derivative = (error - previous_error2)/(SAMPLE_TIME/1000.);
-    output = 0.4*error + 0.9*integral + 0.*derivative;
+    output = 0.5*error + 0.9*integral + 0.*derivative;
+    //output = 0.2*error + 0.5*integral + 0.*derivative;
     previous_error2 = error;
     return output;
 }

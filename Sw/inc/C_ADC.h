@@ -28,18 +28,31 @@ public:
         for(uint8_t i=0;i<8;i++) {
             sensors_value[i]=0;
         }
+
+        /*
+         //brown cardboard
+        previous_closest_sensor=123;
+        sensor_value_when_other_sensor_is_in_min=2700;
+        sensors_both_have_same_values=1500;
+        sensor_min=950;
+        sensor_max=3300;
+         */
+
+
+        //paper
         /*
         previous_closest_sensor=123;
-        sensor_value_when_other_sensor_is_in_min=3056;
-        sensors_both_have_same_values=1500;
-        sensor_min=920;
-        sensor_max=3800;
-        */
+        sensor_value_when_other_sensor_is_in_min=3700;
+        sensors_both_have_same_values=2000;
+        sensor_min=1100;
+        sensor_max=3900;
+*/
+        //official track
         previous_closest_sensor=123;
-        sensor_value_when_other_sensor_is_in_min=3000;
-        sensors_both_have_same_values=1850;
-        sensor_min=950;
-        sensor_max=3400;
+        sensor_value_when_other_sensor_is_in_min=3700;
+        sensors_both_have_same_values=2200;
+        sensor_min=1200;
+        sensor_max=3900;
     }
 
 /**
@@ -119,6 +132,9 @@ public:
 
         }
         if(isnanf(distance)){
+            distance=0;
+        }
+        if(isinf(distance)){
             distance=0;
         }
         return distance;
