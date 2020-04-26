@@ -66,7 +66,7 @@ namespace bpc_prp_opencv_lib {
         saveImage("gray", gray);
 
         cv::Mat rt,gt,bt, grayt, pom;
-        cv::threshold(r, rt, 140, 255, CV_8U);
+        cv::threshold(r, rt, 150, 255, CV_8U);
         //cv::threshold(g, gt, 95, 255, CV_8U);//100
         //cv::threshold(b, bt, 100, 255, CV_8U);
         cv::threshold(gray, grayt, 100, 255, CV_8U);
@@ -81,16 +81,12 @@ namespace bpc_prp_opencv_lib {
         //detectCrossing(255-grayt);
 
         cv::Mat workerMask = rt & ( (255-grayt));
-        //cv::Mat zombieMask = gt & ( (255-grayt));
 
         saveImage("workerMask", workerMask);
-        //saveImage("zombieMask", zombieMask);
 
         auto workers = maskToDetection(workerMask, Detection::DetectionType::kWorker);
-        //auto zombies = maskToDetection(zombieMask, Detection::DetectionType::kZombie);
 
         for(const auto& worker : workers) { output.push_back(worker); }
-        //for(const auto& zombie : zombies) { output.push_back(zombie); }
 
         return output;
     }
@@ -151,7 +147,7 @@ namespace bpc_prp_opencv_lib {
                     case Detection::DetectionType::kWorker: std::cout << "Worker "; break;
                     case Detection::DetectionType::kZombie: std::cout << "Zombie "; break;
                 }
-                std::cout << i << "] " << left << " " << top << " " << width << " " << height << " " << area << std::endl;
+                std::cout << i << "] " << left << " " << top << " " << width << " " << height <<  std::endl;
             }
             output.emplace_back( Detection(type,
                                            estimateDistance(left, top, width, height, area),
@@ -164,14 +160,13 @@ namespace bpc_prp_opencv_lib {
 
     float ImageProcessor::estimateDistance(int left, int top, int width, int height, int area) const {
         // TODO: create code to calculate obstacle distance
-
-        return 1.0f;
+            return height>200;
     }
 
 
     float ImageProcessor::estimateDirection(int left, int top, int width, int height, int area) const {
         // TODO: create code to calculate obstacle direction
-        return 0.0f;
+        return (left+width)/2.;
     }
 
     uint16_t ImageProcessor::GetTapeWidth(){

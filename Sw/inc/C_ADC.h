@@ -29,30 +29,33 @@ public:
             sensors_value[i]=0;
         }
 
-        /*
+
          //brown cardboard
+         /*
         previous_closest_sensor=123;
         sensor_value_when_other_sensor_is_in_min=2700;
         sensors_both_have_same_values=1500;
         sensor_min=950;
         sensor_max=3300;
-         */
+*/
 
 
         //paper
-        /*
+
         previous_closest_sensor=123;
         sensor_value_when_other_sensor_is_in_min=3700;
         sensors_both_have_same_values=2000;
         sensor_min=1100;
         sensor_max=3900;
-*/
+
         //official track
+        /*
         previous_closest_sensor=123;
         sensor_value_when_other_sensor_is_in_min=3700;
         sensors_both_have_same_values=2200;
         sensor_min=1200;
         sensor_max=3900;
+         */
     }
 
 /**
@@ -100,7 +103,6 @@ public:
         if(closest==1){
             if(previous_closest_sensor==2)
             {
-                sensors_both_have_same_values=sensors_value[1];
                 distance=0;
                 previous_closest_sensor=1;
             }
@@ -118,7 +120,6 @@ public:
 
             if(previous_closest_sensor==1)
             {
-                sensors_both_have_same_values=sensors_value[2];
                 distance=0;
                 previous_closest_sensor=2;
             }

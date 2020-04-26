@@ -28,7 +28,7 @@ enum _State{
     OUT_OF_TAPE,
     WORKER,
     TESTING
-}State=TESTING;
+}State=NORMAL;
 
 
 const char *graf(char* buffer, int nchars, float value);
@@ -53,10 +53,12 @@ int main(int argc, char* argv[])
     (void)ADC.Read_Register(AD799X_CONFIG);
     //MOTORS
     C_MOTORS MOTORS(I2C_BUS_NUMBER,GPIO.get_fd(),ADDR_KM2_DEFAULT);
+
+    //START
+    GPIO.Beep(10,1000);
 #if CAMERA
     //CAMERA
-    /// example of bpc_prp_opencv_lib usage ///
-    bpc_prp_opencv_lib::ImageProcessor imgProcessor(true, true, "/home/pi/images/");
+    bpc_prp_opencv_lib::ImageProcessor imgProcessor(false, false, "/home/pi/images/");
     cv::VideoCapture cap;
     if(!cap.open(0)) {
         std::cerr << "Error, unable to open camera" << std::endl;
@@ -69,8 +71,6 @@ int main(int argc, char* argv[])
         return -2;
     }
 #endif
-    //START
-    GPIO.Beep(10,1000);
 #if STARTUP_SETTING
     while(1){
         ADC.Read_Sensors();
@@ -125,9 +125,9 @@ int main(int argc, char* argv[])
                 cap >> frame;
                 auto detections = imgProcessor.analyzeImage(frame);
 
-                if(imgProcessor.GetTapeWidth()>125) {
-                    std::cerr << "Tape width: " << imgProcessor.GetTapeWidth() << std::endl;
-                    State=CROSSING;
+                std::cout << detection.getTypeAsString()<<" "<< detection.getDistance() <<" "<<detection.getDirection() << std::endl;
+                if(detection.getDistance()==1){
+                    State=WORKER;
                 }
 
 #endif
@@ -156,6 +156,40 @@ int main(int argc, char* argv[])
             }
             case WORKER:
                 {
+                    MOTORS.Set_Speed(0,0);
+                    GPIO.Beep(100,1000);
+
+                    //right 90 degree turn
+                    for(int i=0;i<18;i++){
+                        MOTORS.Set_Speed(0,M_PI_2);
+                        Delay_ms(SAMPLE_TIME);
+                    }
+                    MOTORS.Set_Speed(0,0);
+                    GPIO.Beep(100,1000);
+
+
+                    for(int i=0;i<150;i++){
+                        MOTORS.Set_Speed(C_WHEEL/1.5,-M_PI/4.);
+                        ADC.Read_Sensors();
+                        distance=ADC.Calculate_Distance(0);
+                        std::cout << "dis: " << distance << std::endl;
+                        if((i>10)&&((distance>-10.)&&(distance<10.))&&(distance!=0.)){
+                            GPIO.Beep(10,0);
+                            break;
+                        }
+                        Delay_ms(SAMPLE_TIME);
+                    }
+                    MOTORS.Set_Speed(0,0);
+
+                    spd=0;
+                    ang=0;
+                    prev_ang[5]=0;
+                    prev_ang[4]=0;
+                    prev_ang[3]=0;
+                    prev_ang[2]=0;
+                    prev_ang[1]=0;
+                    prev_ang[0]=0;
+                    State=NORMAL;
                 break;
             }
             case TESTING:
@@ -163,13 +197,17 @@ int main(int argc, char* argv[])
 
                 cap >> frame;
                 auto detections = imgProcessor.analyzeImage(frame);
-/*
-                if(imgProcessor.GetTapeWidth()>125) {
-                    std::cerr << "Tape width: " << imgProcessor.GetTapeWidth() << std::endl;
-                    State=CROSSING;
+                for(const auto& detection : detections){
+                    std::cout << detection.getTypeAsString()<<" "<< detection.getDistance() <<" "<<detection.getDirection() << std::endl;
+                    if(detection.getDistance()==1){
+                        GPIO.LED_ON(PA0);
+                        State=WORKER;
+                    }
+                    else{
+                        GPIO.LED_OFF(PA0);
+                    }
                 }
-*/
-                while(1);
+                Delay_ms(SAMPLE_TIME);
                 break;
             }
             default:
